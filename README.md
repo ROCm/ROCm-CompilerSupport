@@ -10,7 +10,7 @@ Code Object Manager
 
 The Code Object Manager is a shared library which provides operations for
 creating and inspecting code objects. See the documentation in the header file
-`lib/comgr/include/comgr/amd_comgr.h`
+`lib/comgr/include/amd_comgr.h`
 
 License
 -------
