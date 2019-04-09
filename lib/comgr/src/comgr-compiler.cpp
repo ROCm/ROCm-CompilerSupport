@@ -671,6 +671,25 @@ amd_comgr_status_t AMDGPUCompiler::removeTmpDirs() {
   return AMD_COMGR_STATUS_SUCCESS;
 }
 
+amd_comgr_status_t AMDGPUCompiler::executeOutOfProcessHIPCompilation(
+    llvm::ArrayRef<const char *> Args) {
+    static const char* HIPPath = std::getenv("HIP_PATH");
+    if (!HIPPath)
+      HIPPath = "/opt/rocm/hip";
+    std::string Exec = std::string(HIPPath) + "/bin/hipcc";
+    std::vector<StringRef> ArgsV;
+    ArgsV.push_back(Exec);
+    for (StringRef Arg : Args)
+      ArgsV.push_back(Arg);
+    std::vector<Optional<StringRef>> Redirects;
+    std::string ErrMsg;
+    int RC = sys::ExecuteAndWait(Exec, ArgsV,
+                                 /*env=*/None, Redirects, /*secondsToWait=*/0,
+                                 /*memoryLimit=*/0, &ErrMsg);
+    LogS << ErrMsg;
+    return RC ? AMD_COMGR_STATUS_ERROR : AMD_COMGR_STATUS_SUCCESS;
+}
+
 amd_comgr_status_t AMDGPUCompiler::processFile(const char *InputFilePath,
                                                const char *OutputFilePath) {
   SmallVector<const char *, 128> Argv;
@@ -685,6 +704,10 @@ amd_comgr_status_t AMDGPUCompiler::processFile(const char *InputFilePath,
 
   Argv.push_back("-o");
   Argv.push_back(OutputFilePath);
+
+  // For HIP compilation, we launch a process.
+  if (getLanguage() == AMD_COMGR_LANGUAGE_HIP)
+    return executeOutOfProcessHIPCompilation(Argv);
 
   InProcessDriver TheDriver(LogS);
 
@@ -851,6 +874,18 @@ amd_comgr_status_t AMDGPUCompiler::compileToBitcode() {
   Args.push_back("-emit-llvm");
 
   return processFiles(AMD_COMGR_DATA_KIND_BC, ".bc");
+}
+
+amd_comgr_status_t AMDGPUCompiler::CompileToFatBin() {
+  if (auto Status = createTmpDirs())
+    return Status;
+
+  if (ActionInfo->Language != AMD_COMGR_LANGUAGE_HIP)
+    return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
+
+  Args.push_back("--genco");
+
+  return processFiles(AMD_COMGR_DATA_KIND_FATBIN, ".fatbin");
 }
 
 amd_comgr_status_t AMDGPUCompiler::linkBitcodeToBitcode() {
