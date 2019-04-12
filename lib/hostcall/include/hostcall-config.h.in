@@ -1,0 +1,6 @@
+#ifndef HOSTCALL_CONFIG_H
+#define HOSTCALL_CONFIG_H
+
+#cmakedefine WITH_HSA
+
+#endif // HOSTCALL_CONFIG_H

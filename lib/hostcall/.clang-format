@@ -1,0 +1,10 @@
+AlwaysBreakAfterReturnType: TopLevel
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortFunctionsOnASingleLine: true
+BreakConstructorInitializers: BeforeColon
+BraceWrapping:
+  AfterFunction:   true
+  SplitEmptyFunction: false
+BreakBeforeBraces: Custom
+IndentWidth:     4
+PenaltyBreakBeforeFirstCallParameter: 300

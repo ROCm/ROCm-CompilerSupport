@@ -1,0 +1,12 @@
+@PACKAGE_INIT@
+
+set_and_check(hostcall_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
+set_and_check(hostcall_LIB_INSTALL_DIR "@PACKAGE_LIB_INSTALL_DIR@")
+
+include("${CMAKE_CURRENT_LIST_DIR}/amd_hostcall_export.cmake")
+
+set(hostcall_LIBRARIES amd_hostcall)
+
+set(HOSTCALL_INCLUDE_DIR ${hostcall_INCLUDE_DIR})
+set(HOSTCALL_LIB_INSTALL_DIR ${hostcall_LIB_INSTALL_DIR})
+set(HOSTCALL_LIBRARIES ${hostcall_LIBRARIES})
