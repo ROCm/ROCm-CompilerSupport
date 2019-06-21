@@ -49,14 +49,6 @@
                     __LINE__, KNRM);                                           \
     }
 
-int debug_mode = 0;
-#define WHEN_DEBUG(xxx)                                                        \
-    do {                                                                       \
-        if (debug_mode) {                                                      \
-            xxx;                                                               \
-        }                                                                      \
-    } while (false)
-
 static int
 set_flags(int argc, char *argv[])
 {
@@ -68,7 +60,6 @@ set_flags(int argc, char *argv[])
             return __LINE__;
         switch (str[1]) {
         case 'd':
-            debug_mode = 1;
             amd_hostcall_enable_debug();
             break;
         default:
