@@ -7,12 +7,10 @@ objects. The API is documented in the [header file](include/amd_comgr.h).
 Build the Code Object Manager
 -----------------------------
 
-Comgr depends on LLVM, and optionally depends on
+Comgr depends on LLVM, yaml-cpp, and optionally depends on
 [AMDDeviceLibs](https://github.com/RadeonOpenCompute/ROCm-Device-Libs). The
 `CMAKE_PREFIX_PATH` must include either the build directory or install prefix
-of both of these components. Comgr also depends on yaml-cpp, but version
-[0.6.2](https://github.com/jbeder/yaml-cpp/releases/tag/yaml-cpp-0.6.2) is
-included in-tree.
+of both of these components.
 
 Comgr depends on Clang and LLD, which should be built as a part of the LLVM
 distribution used. The LLVM, Clang, and LLD used must be from the amd-common
