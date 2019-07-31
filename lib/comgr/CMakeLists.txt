@@ -185,7 +185,11 @@ add_subdirectory(yaml-cpp EXCLUDE_FROM_ALL)
 include_directories(./yaml-cpp/include)
 
 set(CLANG_LIBS
-  clangFrontendTool)
+  clangFrontendTool
+  clangFrontend
+  clangBasic
+  clangDriver
+  clangSerialization)
 
 set(LLD_LIBS
   lldELF
@@ -193,8 +197,19 @@ set(LLD_LIBS
 
 llvm_map_components_to_libnames(LLVM_LIBS
   ${LLVM_TARGETS_TO_BUILD}
+  Option
   DebugInfoDWARF
-  Symbolize)
+  Symbolize
+  Support
+  Object
+  BitWriter
+  MC
+  MCParser
+  MCDisassembler
+  Core
+  IRReader
+  CodeGen
+  Linker)
 
 target_link_libraries(amd_comgr
   PUBLIC
