@@ -5,6 +5,8 @@ if (NOT UNIX)
     message(FATAL_ERROR "No Windows support due to lack of signals")
 endif()
 
+include(GNUInstallDirs)
+
 find_path(HSA_HEADER hsa/hsa.h PATHS /opt/rocm/include)
 if (NOT EXISTS ${HSA_HEADER})
     message(FATAL_ERROR "Cannot find HSA headers. Please check the CMAKE_PREFIX_PATH")
@@ -34,9 +36,9 @@ target_compile_options(amd_hostcall
 target_compile_definitions(amd_hostcall
   PRIVATE "${AMD_HOSTCALL_PRIVATE_COMPILE_DEFINITIONS}")
 
-set(INCLUDE_INSTALL_DIR include)
-set(LIB_INSTALL_DIR lib)
-set(SHARE_INSTALL_DIR share)
+set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
+set(LIB_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR})
+set(SHARE_INSTALL_DIR ${CMAKE_INSTALL_DATADIR})
 set(CONFIG_INSTALL_DIR ${LIB_INSTALL_DIR}/cmake/amd_hostcall)
 
 install(TARGETS amd_hostcall
