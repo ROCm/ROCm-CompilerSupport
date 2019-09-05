@@ -673,17 +673,17 @@ amd_comgr_status_t AMDGPUCompiler::removeTmpDirs() {
 
 amd_comgr_status_t AMDGPUCompiler::executeOutOfProcessHIPCompilation(
     llvm::ArrayRef<const char *> Args) {
-    static const char* HIPPath = std::getenv("HIP_PATH");
-    if (!HIPPath)
-      HIPPath = "/opt/rocm/hip";
-    std::string Exec = std::string(HIPPath) + "/bin/hipcc";
     std::vector<StringRef> ArgsV;
-    ArgsV.push_back(Exec);
-    for (StringRef Arg : Args)
-      ArgsV.push_back(Arg);
+    if (Args.size() < 2) {
+      LogS << "Error: hipcc path not provided.\n";
+      return AMD_COMGR_STATUS_ERROR;
+    }
+    for (unsigned I = 1, E = Args.size(); I != E; ++I)
+      ArgsV.push_back(Args[I]);
+    ArgsV.push_back("--genco");
     std::vector<Optional<StringRef>> Redirects;
     std::string ErrMsg;
-    int RC = sys::ExecuteAndWait(Exec, ArgsV,
+    int RC = sys::ExecuteAndWait(Args[1], ArgsV,
                                  /*env=*/None, Redirects, /*secondsToWait=*/0,
                                  /*memoryLimit=*/0, &ErrMsg);
     LogS << ErrMsg;
@@ -882,8 +882,6 @@ amd_comgr_status_t AMDGPUCompiler::CompileToFatBin() {
 
   if (ActionInfo->Language != AMD_COMGR_LANGUAGE_HIP)
     return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
-
-  Args.push_back("--genco");
 
   return processFiles(AMD_COMGR_DATA_KIND_FATBIN, ".fatbin");
 }

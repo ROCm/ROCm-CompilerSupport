@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
   status = amd_comgr_action_info_set_language(dataAction, AMD_COMGR_LANGUAGE_HIP);
   checkError(status, "amd_comgr_action_info_set_language");
   status = amd_comgr_action_info_set_options(dataAction,
-                                             "--amdgpu-target=gfx900");
+                                             "/opt/rocm/hip/bin/hipcc --amdgpu-target=gfx900");
   checkError(status, "amd_comgr_action_info_set_options");
 
   status = amd_comgr_create_data_set(&dataSetFatBin);
