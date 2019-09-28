@@ -203,7 +203,11 @@ install(FILES
   DESTINATION "${AMD_COMGR_PACKAGE_PREFIX}")
 
 set(CLANG_LIBS
-  clangFrontendTool)
+  clangFrontendTool
+  clangFrontend
+  clangBasic
+  clangDriver
+  clangSerialization)
 
 set(LLD_LIBS
   lldELF
@@ -211,8 +215,20 @@ set(LLD_LIBS
 
 llvm_map_components_to_libnames(LLVM_LIBS
   ${LLVM_TARGETS_TO_BUILD}
+  Option
   DebugInfoDWARF
-  Symbolize)
+  Symbolize
+  Support
+  Object
+  BitWriter
+  MC
+  MCParser
+  MCDisassembler
+  Core
+  IRReader
+  CodeGen
+  Linker
+  BinaryFormat)
 
 target_link_libraries(amd_comgr
   PUBLIC
