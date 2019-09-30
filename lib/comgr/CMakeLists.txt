@@ -209,7 +209,8 @@ llvm_map_components_to_libnames(LLVM_LIBS
   Core
   IRReader
   CodeGen
-  Linker)
+  Linker
+  BinaryFormat)
 
 target_link_libraries(amd_comgr
   PUBLIC
