@@ -22,7 +22,7 @@ if (ROCM_FOUND)
   rocm_setup_version(VERSION "${amd_comgr_VERSION}")
 endif()
 
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+if(NOT LLVM_EXTERNAL_CLANG_SOURCE_DIR)
   find_package(AMDDeviceLibs)
 
   find_package(Clang REQUIRED)
