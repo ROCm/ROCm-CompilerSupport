@@ -74,4 +74,18 @@ foreach(AMDGCN_LIB_TARGET ${AMD_DEVICE_LIBS_TARGETS})
   endif()
 endforeach()
 
+# Generate function yield all libraries.
+file(APPEND ${INC_DIR}/libraries.inc "\n#include \"llvm/ADT/ArrayRef.h\"\n")
+file(APPEND ${INC_DIR}/libraries.inc
+  "llvm::ArrayRef<std::tuple<llvm::StringRef, llvm::StringRef>> COMGR::getDeviceLibraries() { \
+   static std::tuple<llvm::StringRef, llvm::StringRef> DeviceLibs[] = {")
+foreach(AMDGCN_LIB_TARGET ${AMD_DEVICE_LIBS_TARGETS})
+  file(APPEND ${INC_DIR}/libraries.inc
+    "{\"${AMDGCN_LIB_TARGET}.bc\", llvm::StringRef(reinterpret_cast<const char *>(${AMDGCN_LIB_TARGET}_lib), ${AMDGCN_LIB_TARGET}_lib_size)},")
+endforeach()
+file(APPEND ${INC_DIR}/libraries.inc
+  "}; \
+   return DeviceLibs; \
+   }")
+
 include_directories(${INC_DIR})

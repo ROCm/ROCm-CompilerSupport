@@ -37,6 +37,7 @@
  ******************************************************************************/
 
 #include "comgr-compiler.h"
+#include "comgr-device-libs.h"
 #include "comgr-env.h"
 #include "lld/Common/Driver.h"
 #include "clang/Basic/Version.h"
@@ -517,7 +518,7 @@ static amd_comgr_status_t inputFromFile(DataObject *Object, StringRef Path) {
   return AMD_COMGR_STATUS_SUCCESS;
 }
 
-static amd_comgr_status_t outputToFile(DataObject *Object, StringRef Path) {
+static amd_comgr_status_t outputToFile(StringRef Data, StringRef Path) {
   SmallString<128> DirPath = Path;
   path::remove_filename(DirPath);
   if (fs::create_directories(DirPath))
@@ -526,11 +527,15 @@ static amd_comgr_status_t outputToFile(DataObject *Object, StringRef Path) {
   raw_fd_ostream OS(Path, EC, fs::F_None);
   if (EC)
     return AMD_COMGR_STATUS_ERROR;
-  OS << StringRef(Object->Data, Object->Size);
+  OS << Data;
   OS.close();
   if (OS.has_error())
     return AMD_COMGR_STATUS_ERROR;
   return AMD_COMGR_STATUS_SUCCESS;
+}
+
+static amd_comgr_status_t outputToFile(DataObject *Object, StringRef Path) {
+  return outputToFile(StringRef(Object->Data, Object->Size), Path);
 }
 
 static void initializeCommandLineArgs(SmallVectorImpl<const char *> &Args) {
@@ -710,7 +715,6 @@ amd_comgr_status_t AMDGPUCompiler::executeOutOfProcessHIPCompilation(
 amd_comgr_status_t AMDGPUCompiler::processFile(const char *InputFilePath,
                                                const char *OutputFilePath) {
   SmallVector<const char *, 128> Argv;
-  bool SawRocmPath = false;
 
   for (auto &Arg : Args)
     Argv.push_back(Arg);
@@ -718,7 +722,7 @@ amd_comgr_status_t AMDGPUCompiler::processFile(const char *InputFilePath,
   for (auto &Option : ActionInfo->getOptions()) {
     Argv.push_back(Option.c_str());
     if (Option.rfind("--rocm-path", 0) == 0)
-      SawRocmPath = true;
+      NoGpuLib = false;
   }
 
   Argv.push_back(InputFilePath);
@@ -726,7 +730,7 @@ amd_comgr_status_t AMDGPUCompiler::processFile(const char *InputFilePath,
   // By default, disable bitcode selection and linking by the driver.
   // FIXME: We should always let the driver take care of bitcode library
   // selection and linking when we have a consistent path to use.
-  if (!SawRocmPath)
+  if (NoGpuLib)
     Argv.push_back("-nogpulib");
 
   Argv.push_back("-o");
@@ -906,7 +910,7 @@ amd_comgr_status_t AMDGPUCompiler::preprocessToSource() {
   return processFiles(AMD_COMGR_DATA_KIND_SOURCE, ".i");
 }
 
-amd_comgr_status_t AMDGPUCompiler::compileToBitcode() {
+amd_comgr_status_t AMDGPUCompiler::compileToBitcode(bool WithDeviceLibs) {
   if (auto Status = createTmpDirs())
     return Status;
 
@@ -926,6 +930,24 @@ amd_comgr_status_t AMDGPUCompiler::compileToBitcode() {
 #if _WIN32
   Args.push_back("-fshort-wchar");
 #endif
+
+  if (WithDeviceLibs) {
+    llvm::SmallString<128> FakeRocmDir = TmpDir;
+    path::append(FakeRocmDir, "rocm");
+    llvm::SmallString<128> DeviceLibsDir = FakeRocmDir;
+    path::append(DeviceLibsDir, "amdgcn", "bitcode");
+    if (fs::create_directory(InputDir))
+      return AMD_COMGR_STATUS_ERROR;
+    Args.push_back(Saver.save(Twine("--rocm-path=") + FakeRocmDir).data());
+    NoGpuLib = false;
+
+    for (auto DeviceLib : getDeviceLibraries()) {
+      llvm::SmallString<128> DeviceLibPath = DeviceLibsDir;
+      path::append(DeviceLibPath, std::get<0>(DeviceLib));
+      if (auto Status = outputToFile(std::get<1>(DeviceLib), DeviceLibPath))
+        return Status;
+    }
+  }
 
   return processFiles(AMD_COMGR_DATA_KIND_BC, ".bc");
 }
