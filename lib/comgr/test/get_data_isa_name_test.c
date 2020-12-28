@@ -41,44 +41,53 @@
 
 #define MAX_ISA_NAME_SIZE 1024
 
-typedef enum {none, off, on, any} mode_t;
+typedef enum {none, off, on, any} feature_mode_t;
 
 typedef struct {
   const char *isa_name;
   bool supported_v2;
   bool sramecc_supported;
-  mode_t sramecc_v2;
+  feature_mode_t sramecc_v2;
   bool xnack_supported;
-  mode_t xnack_v2;
+  feature_mode_t xnack_v2;
 } isa_features_t;
 
 /* Features supported based on https://llvm.org/docs/AMDGPUUsage.html . */
 static isa_features_t isa_features[] = {
-  //          ISA Name             V2         ------ SRAMECC ------  ------- XNACK -------
-  //                               Supported  Supported  V2          Supported  V2
-    {"amdgcn-amd-amdhsa--gfx700",  true,      false,     none,       false,     none},
-    {"amdgcn-amd-amdhsa--gfx701",  true,      false,     none,       false,     none},
-    {"amdgcn-amd-amdhsa--gfx702",  true,      false,     none,       false,     none},
-    {"amdgcn-amd-amdhsa--gfx703",  true,      false,     none,       false,     none},
-    {"amdgcn-amd-amdhsa--gfx704",  true,      false,     none,       false,     none},
-    {"amdgcn-amd-amdhsa--gfx801",  true,      false,     none,       true,      on},
-    {"amdgcn-amd-amdhsa--gfx802",  true,      false,     none,       false,     none},
-    {"amdgcn-amd-amdhsa--gfx803",  true,      false,     none,       false,     none},
-    {"amdgcn-amd-amdhsa--gfx810",  true,      false,     none,       true,      on},
-    {"amdgcn-amd-amdhsa--gfx900",  true,      false,     none,       true,      any},
-    {"amdgcn-amd-amdhsa--gfx902",  true,      false,     none,       true,      any},
-    {"amdgcn-amd-amdhsa--gfx904",  true,      false,     none,       true,      any},
-    {"amdgcn-amd-amdhsa--gfx906",  true,      true,      off,        true,      any},
-    {"amdgcn-amd-amdhsa--gfx908",  false,     true,      on,         true,      none},
-    {"amdgcn-amd-amdhsa--gfx909",  false,     false,     none,       true,      none},
-    {"amdgcn-amd-amdhsa--gfx1010", false,     false,     none,       true,      none},
-    {"amdgcn-amd-amdhsa--gfx1011", false,     false,     none,       true,      none},
-    {"amdgcn-amd-amdhsa--gfx1012", false,     false,     none,       true,      none},
-    {"amdgcn-amd-amdhsa--gfx1030", false,     false,     none,       false,     none},
-    {"amdgcn-amd-amdhsa--gfx1031", false,     false,     none,       false,     none},
-    {"amdgcn-amd-amdhsa--gfx1032", false,     false,     none,       false,     none}};
+  //        ISA Name             V2         ------ SRAMECC ------  ------- XNACK -------
+  //                             Supported  Supported  V2          Supported  V2
+// FIXME: Re-enable when compiler supports gfx60x.
+//  {"amdgcn-amd---gfx600",        true,      false,     none,       false,     none},
+//  {"amdgcn-amd---gfx601",        true,      false,     none,       false,     none},
+//  {"amdgcn-amd---gfx602",        true,      false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx700",  true,      false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx701",  true,      false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx702",  true,      false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx703",  true,      false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx704",  true,      false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx705",  true,      false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx801",  true,      false,     none,       true,      on},
+  {"amdgcn-amd-amdhsa--gfx802",  true,      false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx803",  true,      false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx805",  true,      false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx810",  true,      false,     none,       true,      on},
+  {"amdgcn-amd-amdhsa--gfx900",  true,      false,     none,       true,      any},
+  {"amdgcn-amd-amdhsa--gfx902",  true,      false,     none,       true,      any},
+  {"amdgcn-amd-amdhsa--gfx904",  true,      false,     none,       true,      any},
+  {"amdgcn-amd-amdhsa--gfx906",  true,      true,      off,        true,      any},
+  {"amdgcn-amd-amdhsa--gfx908",  false,     true,      none,       true,      none},
+  {"amdgcn-amd-amdhsa--gfx909",  false,     false,     none,       true,      none},
+  {"amdgcn-amd-amdhsa--gfx90c",  false,     false,     none,       true,      none},
+  {"amdgcn-amd-amdhsa--gfx1010", false,     false,     none,       true,      none},
+  {"amdgcn-amd-amdhsa--gfx1011", false,     false,     none,       true,      none},
+  {"amdgcn-amd-amdhsa--gfx1012", false,     false,     none,       true,      none},
+  {"amdgcn-amd-amdhsa--gfx1030", false,     false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx1031", false,     false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx1032", false,     false,     none,       false,     none},
+  {"amdgcn-amd-amdhsa--gfx1033", false,     false,     none,       false,     none},
+};
 
-static int isa_features_size =
+static size_t isa_features_size =
     sizeof(isa_features) / sizeof(isa_features[0]);
 
 bool has_sub_string(const char *string, const char *sub) {
@@ -93,7 +102,7 @@ bool get_expected_isa_name(unsigned code_object_version, const char *isa_name,
 
   char *token = strtok(tokenized_isa_name, ":");
   isa_features_t *isa = NULL;
-  for (unsigned i = 0; i < isa_features_size; i++) {
+  for (size_t i = 0; i < isa_features_size; i++) {
     if (strncmp(token, isa_features[i].isa_name, MAX_ISA_NAME_SIZE) == 0) {
       isa = &isa_features[i];
       break;
@@ -106,8 +115,8 @@ bool get_expected_isa_name(unsigned code_object_version, const char *isa_name,
 
   strncpy(expected_isa_name, isa->isa_name, MAX_ISA_NAME_SIZE);
 
-  mode_t sramecc = any;
-  mode_t xnack = any;
+  feature_mode_t sramecc = any;
+  feature_mode_t xnack = any;
 
   token = strtok(NULL, ":");
   while (token != NULL) {
@@ -194,8 +203,6 @@ bool get_expected_isa_name(unsigned code_object_version, const char *isa_name,
 
 void check_isa_name(amd_comgr_data_t data, const char *input_isa_name,
                     const char *expected_isa_name) {
-  size_t expected_size = strlen(expected_isa_name) + 1;
-
   size_t size;
   char *isa_name = NULL;
   amd_comgr_status_t status;
@@ -203,6 +210,8 @@ void check_isa_name(amd_comgr_data_t data, const char *input_isa_name,
   status = amd_comgr_get_data_isa_name(data, &size, isa_name);
   checkError(status, "amd_comgr_get_data_isa_name");
 
+  isa_name = malloc(size);
+  if (!isa_name) {
   isa_name = malloc(size);
   if (!isa_name) {
     printf("cannot allocate %zu bytes for isa_name\n", size);
