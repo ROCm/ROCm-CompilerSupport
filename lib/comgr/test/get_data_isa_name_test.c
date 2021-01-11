@@ -212,8 +212,6 @@ void check_isa_name(amd_comgr_data_t data, const char *input_isa_name,
 
   isa_name = malloc(size);
   if (!isa_name) {
-  isa_name = malloc(size);
-  if (!isa_name) {
     printf("cannot allocate %zu bytes for isa_name\n", size);
     exit(1);
   }
