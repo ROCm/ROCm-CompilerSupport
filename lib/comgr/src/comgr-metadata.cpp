@@ -82,11 +82,11 @@ getELFObjectFileBase(DataObject *DataP) {
 template <class ELFT, typename F>
 static amd_comgr_status_t processElfNotes(const ELFObjectFile<ELFT> *Obj,
                                           F ProcessNote) {
-  const ELFFile<ELFT> *ELFFile = Obj->getELFFile();
+  const ELFFile<ELFT> &ELFFile = Obj->getELFFile();
 
   bool Found = false;
 
-  auto ProgramHeadersOrError = ELFFile->program_headers();
+  auto ProgramHeadersOrError = ELFFile.program_headers();
   if (errorToBool(ProgramHeadersOrError.takeError()))
     return AMD_COMGR_STATUS_ERROR;
 
@@ -94,7 +94,7 @@ static amd_comgr_status_t processElfNotes(const ELFObjectFile<ELFT> *Obj,
     if (Phdr.p_type != ELF::PT_NOTE)
       continue;
     Error Err = Error::success();
-    for (const auto &Note : ELFFile->notes(Phdr, Err))
+    for (const auto &Note : ELFFile.notes(Phdr, Err))
       if (ProcessNote(Note)) {
         Found = true;
         break;
@@ -105,7 +105,7 @@ static amd_comgr_status_t processElfNotes(const ELFObjectFile<ELFT> *Obj,
       return AMD_COMGR_STATUS_SUCCESS;
   }
 
-  auto SectionsOrError = ELFFile->sections();
+  auto SectionsOrError = ELFFile.sections();
   if (errorToBool(SectionsOrError.takeError()))
     return AMD_COMGR_STATUS_ERROR;
 
@@ -113,7 +113,7 @@ static amd_comgr_status_t processElfNotes(const ELFObjectFile<ELFT> *Obj,
     if (Shdr.sh_type != ELF::SHT_NOTE)
       continue;
     Error Err = Error::success();
-    for (const auto &Note : ELFFile->notes(Shdr, Err))
+    for (const auto &Note : ELFFile.notes(Shdr, Err))
       if (ProcessNote(Note)) {
         Found = true;
         break;
@@ -247,9 +247,9 @@ static amd_comgr_status_t getElfMetadataRoot(const ELFObjectFile<ELFT> *Obj,
                                              DataMeta *MetaP) {
   bool Found = false;
   llvm::msgpack::DocNode Root;
-  const ELFFile<ELFT> *ELFFile = Obj->getELFFile();
+  const ELFFile<ELFT> &ELFFile = Obj->getELFFile();
 
-  auto ProgramHeadersOrError = ELFFile->program_headers();
+  auto ProgramHeadersOrError = ELFFile.program_headers();
   if (errorToBool(ProgramHeadersOrError.takeError()))
     return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
 
@@ -257,7 +257,7 @@ static amd_comgr_status_t getElfMetadataRoot(const ELFObjectFile<ELFT> *Obj,
     if (Phdr.p_type != ELF::PT_NOTE)
       continue;
     Error Err = Error::success();
-    for (const auto &Note : ELFFile->notes(Phdr, Err))
+    for (const auto &Note : ELFFile.notes(Phdr, Err))
       if (processNote<ELFT>(Note, MetaP, Root))
         Found = true;
 
@@ -271,7 +271,7 @@ static amd_comgr_status_t getElfMetadataRoot(const ELFObjectFile<ELFT> *Obj,
     return AMD_COMGR_STATUS_SUCCESS;
   }
 
-  auto SectionsOrError = ELFFile->sections();
+  auto SectionsOrError = ELFFile.sections();
   if (errorToBool(SectionsOrError.takeError()))
     return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
 
@@ -279,7 +279,7 @@ static amd_comgr_status_t getElfMetadataRoot(const ELFObjectFile<ELFT> *Obj,
     if (Shdr.sh_type != ELF::SHT_NOTE)
       continue;
     Error Err = Error::success();
-    for (const auto &Note : ELFFile->notes(Shdr, Err))
+    for (const auto &Note : ELFFile.notes(Shdr, Err))
       if (processNote<ELFT>(Note, MetaP, Root))
         Found = true;
 
@@ -412,9 +412,9 @@ static std::string ConvertOldTargetNameToNew(const std::string &old_name, bool i
     mach = ELF::EF_AMDGPU_MACH_AMDGCN_GFX705;
   else if (old_name == "AMD:AMDGPU:8:0:1")
     mach = ELF::EF_AMDGPU_MACH_AMDGCN_GFX801;
-  else if (old_name == "AMD:AMDGPU:8:0:2")
+  else if (old_name == "AMD:AMDGPU:8:0:0" || old_name == "AMD:AMDGPU:8:0:2")
     mach = ELF::EF_AMDGPU_MACH_AMDGCN_GFX802;
-  else if (old_name == "AMD:AMDGPU:8:0:3")
+  else if (old_name == "AMD:AMDGPU:8:0:3" || old_name == "AMD:AMDGPU:8:0:4")
     mach = ELF::EF_AMDGPU_MACH_AMDGCN_GFX803;
   else if (old_name == "AMD:AMDGPU:8:0:5")
     mach = ELF::EF_AMDGPU_MACH_AMDGCN_GFX805;
@@ -474,7 +474,7 @@ template <class ELFT>
 static amd_comgr_status_t getElfIsaNameFromElfNotes(const ELFObjectFile<ELFT> *Obj,
                                                     size_t *Size, char *IsaName) {
 
-  auto ElfHeader = Obj->getELFFile()->getHeader();
+  auto ElfHeader = Obj->getELFFile().getHeader();
 
   // Only ELFABIVERSION_AMDGPU_HSA_V2 used note records for the isa name.
   assert(ElfHeader.e_ident[ELF::EI_ABIVERSION] == ELF::ELFABIVERSION_AMDGPU_HSA_V2);
@@ -597,7 +597,7 @@ static amd_comgr_status_t getElfIsaNameFromElfNotes(const ELFObjectFile<ELFT> *O
 template <class ELFT>
 static amd_comgr_status_t getElfIsaNameFromElfHeader(const ELFObjectFile<ELFT> *Obj,
                                                      size_t *Size, char *IsaName) {
-  auto ElfHeader = Obj->getELFFile()->getHeader();
+  auto ElfHeader = Obj->getELFFile().getHeader();
 
   std::string ElfIsaName;
 
@@ -698,7 +698,7 @@ static amd_comgr_status_t getElfIsaNameFromElfHeader(const ELFObjectFile<ELFT> *
 template <class ELFT>
 static amd_comgr_status_t getElfIsaNameImpl(const ELFObjectFile<ELFT> *Obj,
                                             size_t *Size, char *IsaName) {
-  auto ElfHeader = Obj->getELFFile()->getHeader();
+  auto ElfHeader = Obj->getELFFile().getHeader();
 
   if (ElfHeader.e_ident[ELF::EI_ABIVERSION] == ELF::ELFABIVERSION_AMDGPU_HSA_V2)
     return getElfIsaNameFromElfNotes(Obj, Size, IsaName);
@@ -750,7 +750,7 @@ const char *getIsaName(size_t Index) { return IsaInfos[Index].IsaName; }
 amd_comgr_status_t getIsaMetadata(StringRef IsaName,
                                   llvm::msgpack::Document &Doc) {
   amd_comgr_status_t Status;
-  
+
   size_t IsaIndex;
   Status = getIsaIndex(IsaName, IsaIndex);
   if (Status != AMD_COMGR_STATUS_SUCCESS)
