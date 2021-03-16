@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13.4)
 
-project(amd_comgr VERSION "2.0.0" LANGUAGES C CXX)
+project(amd_comgr VERSION "2.1.0" LANGUAGES C CXX)
 set(amd_comgr_NAME "${PROJECT_NAME}")
 
 include(GNUInstallDirs)
@@ -47,7 +47,8 @@ set(SOURCES
   src/comgr-metadata.cpp
   src/comgr-objdump.cpp
   src/comgr-signal.cpp
-  src/comgr-symbol.cpp)
+  src/comgr-symbol.cpp
+  src/time-stat/time-stat.cpp)
 
 if(COMGR_BUILD_SHARED_LIBS)
   add_library(amd_comgr SHARED ${SOURCES})
@@ -101,12 +102,21 @@ message("")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-if (ENABLE_ASAN)
+if (ADDRESS_SANITIZER)
   set(ASAN_LINKER_FLAGS "-fsanitize=address")
-  set(ASAN_COMPILER_FLAGS "-fno-omit-frame-pointer ${ASAN_LINKER_FLAGS}")
+  set(ASAN_COMPILER_FLAGS "-fno-omit-frame-pointer -fsanitize=address")
+
+  if (NOT CMAKE_COMPILER_IS_GNUCC)
+    if (COMGR_BUILD_SHARED_LIBS)
+      set(ASAN_LINKER_FLAGS "${ASAN_LINKER_FLAGS} -shared-libsan")
+    else()
+      set(ASAN_LINKER_FLAGS "${ASAN_LINKER_FLAGS} -static-libsan")
+    endif()
+  endif()
+
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ASAN_COMPILER_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ASAN_COMPILER_FLAGS}")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${ASAN_LINKER_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${ASAN_LINKER_FLAGS} -s")
   set(CMAKE_SHARED_LINKER_FLAGS
     "${CMAKE_SHARED_LINKER_FLAGS} ${ASAN_LINKER_FLAGS}")
 endif()
@@ -134,7 +144,7 @@ if (UNIX)
     # strict about undefined symbol references, as Clang won't include
     # libasan in the link, see
     # https://clang.llvm.org/docs/AddressSanitizer.html
-    if (NOT ENABLE_ASAN)
+    if (NOT ADDRESS_SANITIZER)
       list(APPEND AMD_COMGR_PRIVATE_LINKER_OPTIONS
         -Wl,--no-undefined)
     endif()
@@ -308,11 +318,11 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   # Add packaging directives for amd_comgr
   set(CPACK_PACKAGE_NAME comgr)
   set(CPACK_PACKAGE_VENDOR "Advanced Micro Devices, Inc.")
-  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Library to provide support functions")
+  set(CPACK_PACKAGE_DESCRIPTION "Library to provide support functions\nfor ROCm code objects.")
   set(CPACK_PACKAGE_VERSION_MAJOR "${amd_comgr_VERSION_MAJOR}")
   set(CPACK_PACKAGE_VERSION_MINOR "${amd_comgr_VERSION_MINOR}")
   set(CPACK_PACKAGE_VERSION_PATCH "${amd_comgr_VERSION_PATCH}")
-  set(CPACK_PACKAGE_CONTACT "Advanced Micro Devices, Inc.")
+  set(CPACK_PACKAGE_CONTACT "ROCm Compiler Support <rocm.compiler.support@amd.com>")
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 
   # Make proper version for appending

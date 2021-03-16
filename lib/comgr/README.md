@@ -74,7 +74,7 @@ The equivalent on Windows in `cmd.exe` using Visual Studio project files is:
 
 Optionally,
 [AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer)
-may be enabled during development via `-DENABLE_ASAN=On` during the Comgr
+may be enabled during development via `-DADDRESS_SANITIZER=On` during the Comgr
 `cmake` step.
 
 Depending on the Code Object Manager
@@ -131,6 +131,8 @@ include:
   filename which logs should be appended to.
 * `AMD_COMGR_EMIT_VERBOSE_LOGS`: If this is set, and is not "0", logs will
   include additional Comgr-specific informational messages.
+* `AMD_COMGR_TIME_STATISTICS`: If this is set, and is not "0", logs will
+  include additional Comgr-specific timing information for compilation actions.
 
 Versioning
 ----------
@@ -142,6 +144,7 @@ is incremented for each backwards-compatible change introduced. The major
 version number is incremented, and the minor version is reset to zero, for each
 backwards-incompatible change introduced.
 
+* `2.1`: Add `AMD_COMGR_TIME_STATISTICS` environment variable.
 * `2.0`: Add support for new target feature syntax introduced at [AMDGPUUsage](https://llvm.org/docs/AMDGPUUsage.html).
 * `1.9`: Add gfx1031
 * `1.8`: Implement GNU Symbol Versioning for all exported functions. Rename
@@ -189,7 +192,12 @@ Wherever possible, Comgr adheres to the same coding standards as
 configuration files for
 [clang-format](https://clang.llvm.org/docs/ClangFormat.html) and
 [clang-tidy](https://clang.llvm.org/extra/clang-tidy/), which should be used to
-ensure patches conform where reasonable.
+ensure patches conform.
 
 One notable exception is the `test/` subdirectory which prefers `camelBack` for
 identifiers rather than `CamelCase`.
+
+A script at `utils/tidy-and-format.sh` can be run to help automate the task of
+ensuring all sources conform to the coding standards. To support the use of
+this script, any exceptions must be annotated in source comments, as described
+in the clang-tidy manual.
