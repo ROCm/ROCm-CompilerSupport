@@ -49,9 +49,15 @@ bool shouldSaveTemps() {
 
 Optional<StringRef> getRedirectLogs() {
   static char *RedirectLogs = getenv("AMD_COMGR_REDIRECT_LOGS");
-  if (!RedirectLogs || StringRef(RedirectLogs) == "0")
+  if (!RedirectLogs || StringRef(RedirectLogs) == "0") {
     return None;
+  }
   return StringRef(RedirectLogs);
+}
+
+bool needTimeStatistics() {
+  static char *TimeStatistics = getenv("AMD_COMGR_TIME_STATISTICS");
+  return TimeStatistics && StringRef(TimeStatistics) != "0";
 }
 
 bool shouldEmitVerboseLogs() {
@@ -61,20 +67,23 @@ bool shouldEmitVerboseLogs() {
 
 llvm::StringRef getROCMPath() {
   static const char *ROCMPath = std::getenv("ROCM_PATH");
-  if (!ROCMPath)
+  if (!ROCMPath) {
     ROCMPath = "/opt/rocm";
+  }
   return ROCMPath;
 }
 
 llvm::StringRef getHIPPath() {
   static const char *TempHIPPath = std::getenv("HIP_PATH");
-  static const std::string HIPPath = TempHIPPath ? TempHIPPath : (getROCMPath() + "/hip").str();
+  static const std::string HIPPath =
+      TempHIPPath ? TempHIPPath : (getROCMPath() + "/hip").str();
   return HIPPath;
 }
 
 llvm::StringRef getLLVMPath() {
   static const char *TempLLVMPath = std::getenv("LLVM_PATH");
-  static const std::string  LLVMPath = TempLLVMPath ? TempLLVMPath : (getROCMPath() + "/llvm").str();
+  static const std::string LLVMPath =
+      TempLLVMPath ? TempLLVMPath : (getROCMPath() + "/llvm").str();
   return LLVMPath;
 }
 
