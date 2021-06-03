@@ -89,6 +89,10 @@ else()
   endif()
 endif()
 
+target_include_directories(amd_comgr
+  PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
 message("")
 message("------------LLVM_DIR: ${LLVM_DIR}")
 message("---LLVM_INCLUDE_DIRS: ${LLVM_INCLUDE_DIRS}")
@@ -149,7 +153,7 @@ if (UNIX)
         -Wl,--no-undefined)
     endif()
   endif()
-else()
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   list(APPEND AMD_COMGR_PRIVATE_COMPILE_OPTIONS "/W0" "/wd4244")
   list(APPEND AMD_COMGR_PRIVATE_COMPILE_DEFINITIONS _HAS_EXCEPTIONS=0)
 endif()
