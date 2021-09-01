@@ -2,7 +2,7 @@ Code Object Manager (Comgr)
 ===========================
 
 The Comgr library provides APIs for compiling and inspecting AMDGPU code
-objects. The API is documented in the [header file](include/amd_comgr.h).
+objects. The API is documented in the [header file](include/amd_comgr.h.in).
 
 Building the Code Object Manager
 --------------------------------
