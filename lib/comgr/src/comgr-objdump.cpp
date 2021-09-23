@@ -334,25 +334,25 @@ static void error(std::error_code EC) {
   exit(1);
 }
 
-static LLVM_ATTRIBUTE_NORETURN void error(Twine Message) {
+[[noreturn]] static void error(Twine Message) {
   errs() << ToolName << ": " << Message << ".\n";
   errs().flush();
   exit(1);
 }
 
-static LLVM_ATTRIBUTE_NORETURN void reportError(StringRef File, Twine Message) {
+[[noreturn]] static void reportError(StringRef File, Twine Message) {
   errs() << ToolName << ": '" << File << "': " << Message << ".\n";
   exit(1);
 }
 
-static LLVM_ATTRIBUTE_NORETURN void reportError(StringRef File,
+[[noreturn]] static void reportError(StringRef File,
                                                 std::error_code EC) {
   assert(EC);
   errs() << ToolName << ": '" << File << "': " << EC.message() << ".\n";
   exit(1);
 }
 
-static LLVM_ATTRIBUTE_NORETURN void reportError(StringRef File, llvm::Error E) {
+[[noreturn]] static void reportError(StringRef File, llvm::Error E) {
   assert(E);
   std::string Buf;
   raw_string_ostream OS(Buf);
@@ -362,7 +362,7 @@ static LLVM_ATTRIBUTE_NORETURN void reportError(StringRef File, llvm::Error E) {
   exit(1);
 }
 
-static LLVM_ATTRIBUTE_NORETURN void
+[[noreturn]] static void
 reportError(StringRef ArchiveName, StringRef FileName, llvm::Error E,
             StringRef ArchitectureName = StringRef()) {
   assert(E);
@@ -383,7 +383,7 @@ reportError(StringRef ArchiveName, StringRef FileName, llvm::Error E,
   exit(1);
 }
 
-static LLVM_ATTRIBUTE_NORETURN void
+[[noreturn]] static void
 reportError(StringRef ArchiveName, const object::Archive::Child &C,
             llvm::Error E, StringRef ArchitectureName = StringRef()) {
   Expected<StringRef> NameOrErr = C.getName();
@@ -398,7 +398,7 @@ reportError(StringRef ArchiveName, const object::Archive::Child &C,
   }
 }
 
-static LLVM_ATTRIBUTE_NORETURN void reportError(llvm::Error E, StringRef File) {
+[[noreturn]] static void reportError(llvm::Error E, StringRef File) {
   reportError(File, std::move(E));
 }
 
@@ -905,7 +905,7 @@ static void printRelocationTargetName(const MachOObjectFile *O,
   }
   if (IsExtern) {
     symbol_iterator SI = O->symbol_begin();
-    advance(SI, Val);
+    std::advance(SI, Val);
     Expected<StringRef> SOrErr = SI->getName();
     if (!SOrErr) {
       reportError(O->getFileName(), SOrErr.takeError());
@@ -914,7 +914,7 @@ static void printRelocationTargetName(const MachOObjectFile *O,
   } else {
     section_iterator SI = O->section_begin();
     // Adjust for the fact that sections are 1-indexed.
-    advance(SI, Val - 1);
+    std::advance(SI, Val - 1);
     Expected<StringRef> SOrErr = SI->getName();
     if (!SOrErr) {
       consumeError(SOrErr.takeError());
@@ -1303,10 +1303,10 @@ void llvm::DisassemHelper::DisassembleObject(const ObjectFile *Obj,
     reportError(Obj->getFileName(),
                 "no instruction info for target " + TripleName);
   }
-  MCObjectFileInfo MOFI;
-  MCContext Ctx(AsmInfo.get(), MRI.get(), &MOFI);
-  // FIXME: for now initialize MCObjectFileInfo with default values
-  MOFI.InitMCObjectFileInfo(Triple(TripleName), false, Ctx);
+  MCContext Ctx(Triple(TripleName), AsmInfo.get(), MRI.get(), STI.get());
+  std::unique_ptr<llvm::MCObjectFileInfo> MOFI(
+      TheTarget->createMCObjectFileInfo(Ctx, /*PIC=*/false));
+  Ctx.setObjectFileInfo(MOFI.get());
 
   std::unique_ptr<MCDisassembler> DisAsm(
       TheTarget->createMCDisassembler(*STI, Ctx));

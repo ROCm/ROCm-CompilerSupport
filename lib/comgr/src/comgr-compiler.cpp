@@ -331,7 +331,7 @@ getOutputStream(AssemblerInvocation &Opts, DiagnosticsEngine &Diags,
 
   std::error_code EC;
   auto Out = std::make_unique<raw_fd_ostream>(
-      Opts.OutputPath, EC, (Binary ? sys::fs::F_None : sys::fs::F_Text));
+      Opts.OutputPath, EC, (Binary ? sys::fs::OF_None : sys::fs::OF_Text));
   if (EC) {
     Diags.Report(diag::err_fe_unable_to_open_output)
         << Opts.OutputPath << EC.message();
@@ -392,11 +392,22 @@ static bool executeAssembler(AssemblerInvocation &Opts,
     return true;
   }
 
-  // FIXME: This is not pretty. MCContext has a ptr to MCObjectFileInfo and
-  // MCObjectFileInfo needs a MCContext reference in order to initialize itself.
-  std::unique_ptr<MCObjectFileInfo> MOFI(new MCObjectFileInfo());
+  // Build up the feature string from the target feature list.
+  std::string FS;
+  if (!Opts.Features.empty()) {
+    FS = Opts.Features[0];
+    for (unsigned I = 1, E = Opts.Features.size(); I != E; ++I) {
+      FS += "," + Opts.Features[I];
+    }
+  }
 
-  MCContext Ctx(MAI.get(), MRI.get(), MOFI.get(), &SrcMgr);
+  std::unique_ptr<MCObjectFileInfo> MOFI(new MCObjectFileInfo());
+  std::unique_ptr<MCSubtargetInfo> STI(
+      TheTarget->createMCSubtargetInfo(Opts.Triple, Opts.CPU, FS));
+
+  MCContext Ctx(Triple(Opts.Triple), MAI.get(), MRI.get(),
+                STI.get(), &SrcMgr);
+  Ctx.setObjectFileInfo(MOFI.get());
 
   bool PIC = false;
   if (Opts.RelocationModel == "static") {
@@ -408,7 +419,7 @@ static bool executeAssembler(AssemblerInvocation &Opts,
     PIC = false;
   }
 
-  MOFI->InitMCObjectFileInfo(Triple(Opts.Triple), PIC, Ctx);
+  MOFI->initMCObjectFileInfo(Ctx, PIC);
   if (Opts.SaveTemporaryLabels) {
     Ctx.setAllowTemporaryLabels(false);
   }
@@ -429,20 +440,8 @@ static bool executeAssembler(AssemblerInvocation &Opts,
   }
   Ctx.setDwarfVersion(Opts.DwarfVersion);
 
-  // Build up the feature string from the target feature list.
-  std::string FS;
-  if (!Opts.Features.empty()) {
-    FS = Opts.Features[0];
-    for (unsigned I = 1, E = Opts.Features.size(); I != E; ++I) {
-      FS += "," + Opts.Features[I];
-    }
-  }
-
   std::unique_ptr<MCStreamer> Str;
-
   std::unique_ptr<MCInstrInfo> MCII(TheTarget->createMCInstrInfo());
-  std::unique_ptr<MCSubtargetInfo> STI(
-      TheTarget->createMCSubtargetInfo(Opts.Triple, Opts.CPU, FS));
 
   raw_pwrite_stream *Out = FDOS.get();
   std::unique_ptr<buffer_ostream> BOS;
@@ -557,7 +556,7 @@ static amd_comgr_status_t outputToFile(StringRef Data, StringRef Path) {
   }
   std::error_code EC;
   ProfilePoint Point("FileIO");
-  raw_fd_ostream OS(Path, EC, fs::F_None);
+  raw_fd_ostream OS(Path, EC, fs::OF_None);
   if (EC) {
     return AMD_COMGR_STATUS_ERROR;
   }
