@@ -69,12 +69,12 @@
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCTargetOptions.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Signals.h"
-#include "llvm/Support/TargetRegistry.h"
 
 #include "time-stat/ts-interface.h"
 
@@ -341,8 +341,8 @@ getOutputStream(AssemblerInvocation &Opts, DiagnosticsEngine &Diags,
   return Out;
 }
 
-static bool executeAssembler(AssemblerInvocation &Opts,
-                             DiagnosticsEngine &Diags, raw_ostream &LogS) {
+static bool executeAssemblerImpl(AssemblerInvocation &Opts,
+                                 DiagnosticsEngine &Diags, raw_ostream &LogS) {
   // Get the target specific parser.
   std::string Error;
   const Target *TheTarget = TargetRegistry::lookupTarget(Opts.Triple, Error);
@@ -481,7 +481,7 @@ static bool executeAssembler(AssemblerInvocation &Opts,
         MAB->createObjectWriter(*Out), std::unique_ptr<MCCodeEmitter>(CE), *STI,
         Opts.RelaxAll, Opts.IncrementalLinkerCompatible,
         /*DWARFMustBeAtTheEnd*/ true));
-    Str.get()->InitSections(Opts.NoExecStack);
+    Str.get()->initSections(Opts.NoExecStack, *STI);
   }
 
   bool Failed = false;
@@ -514,12 +514,12 @@ static bool executeAssembler(AssemblerInvocation &Opts,
     Failed = Parser->Run(Opts.NoInitialTextSection);
   }
 
-  // Close Streamer first.
-  // It might have a reference to the output stream.
-  Str.reset();
-  // Close the output stream early.
-  BOS.reset();
-  FDOS.reset();
+  return Failed;
+}
+
+static bool executeAssembler(AssemblerInvocation &Opts,
+                             DiagnosticsEngine &Diags, raw_ostream &LogS) {
+  bool Failed = executeAssemblerImpl(Opts, Diags, LogS);
 
   // Delete output file if there were errors.
   if (Failed && Opts.OutputPath != "-") {

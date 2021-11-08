@@ -42,6 +42,7 @@
 #include "comgr-objdump.h"
 #include "comgr-signal.h"
 #include "comgr-symbol.h"
+#include "comgr-symbolizer.h"
 
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/Object/ELFObjectFile.h"
@@ -364,9 +365,8 @@ DataObject::DataObject(amd_comgr_data_kind_t DataKind)
 
 DataObject::~DataObject() {
   DataKind = AMD_COMGR_DATA_KIND_UNDEF;
-  free(Data);
+  clearData();
   free(Name);
-  Size = 0;
   delete DataSym;
 }
 
@@ -385,7 +385,26 @@ amd_comgr_status_t DataObject::setName(llvm::StringRef Name) {
 }
 
 amd_comgr_status_t DataObject::setData(llvm::StringRef Data) {
+  clearData();
   return setCStr(this->Data, Data, &Size);
+}
+
+amd_comgr_status_t DataObject::setData(std::unique_ptr<llvm::MemoryBuffer> MB) {
+  Buffer = std::move(MB);
+  Data = const_cast<char *>(Buffer->getBufferStart());
+  Size = Buffer->getBufferSize();
+  return AMD_COMGR_STATUS_SUCCESS;
+}
+
+void DataObject::clearData() {
+  if (Buffer) {
+    Buffer.reset();
+  } else {
+    free(Data);
+  }
+
+  Data = nullptr;
+  Size = 0;
 }
 
 DataSet::DataSet() : DataObjects() {}
@@ -726,6 +745,56 @@ amd_comgr_status_t AMD_COMGR_API
 
 amd_comgr_status_t AMD_COMGR_API
     // NOLINTNEXTLINE(readability-identifier-naming)
+    amd_comgr_create_symbolizer_info
+    //
+    (amd_comgr_data_t CodeObject,
+     void (*PrintSymbolCallback)(const char *, void *),
+     amd_comgr_symbolizer_info_t *SymbolizerInfo) {
+
+  DataObject *CodeObjectP = DataObject::convert(CodeObject);
+  if (!CodeObjectP || !PrintSymbolCallback ||
+      !(CodeObjectP->DataKind == AMD_COMGR_DATA_KIND_RELOCATABLE ||
+        CodeObjectP->DataKind == AMD_COMGR_DATA_KIND_EXECUTABLE ||
+        CodeObjectP->DataKind == AMD_COMGR_DATA_KIND_BYTES))
+    return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
+
+  ensureLLVMInitialized();
+
+  return Symbolizer::create(CodeObjectP, PrintSymbolCallback, SymbolizerInfo);
+}
+
+amd_comgr_status_t AMD_COMGR_API
+    // NOLINTNEXTLINE(readability-identifier-naming)
+    amd_comgr_destroy_symbolizer_info
+    //
+    (amd_comgr_symbolizer_info_t SymbolizerInfo) {
+
+  Symbolizer *SI = Symbolizer::convert(SymbolizerInfo);
+  if (!SI) {
+    return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
+  }
+
+  delete SI;
+  return AMD_COMGR_STATUS_SUCCESS;
+}
+
+amd_comgr_status_t AMD_COMGR_API
+    // NOLINTNEXTLINE(readability-identifier-naming)
+    amd_comgr_symbolize
+    //
+    (amd_comgr_symbolizer_info_t SymbolizeInfo, uint64_t Address, bool IsCode,
+     void *UserData) {
+
+  Symbolizer *SI = Symbolizer::convert(SymbolizeInfo);
+  if (!SI || !UserData) {
+    return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
+  }
+
+  return SI->symbolize(Address, IsCode, UserData);
+}
+
+amd_comgr_status_t AMD_COMGR_API
+    // NOLINTNEXTLINE(readability-identifier-naming)
     amd_comgr_get_data_isa_name
     //
     (amd_comgr_data_t Data, size_t *Size, char *IsaName) {
@@ -737,7 +806,19 @@ amd_comgr_status_t AMD_COMGR_API
     return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
   }
 
-  return metadata::getElfIsaName(DataP, Size, IsaName);
+  std::string ElfIsaName;
+  amd_comgr_status_t Status = metadata::getElfIsaName(DataP, ElfIsaName);
+
+  if (Status == AMD_COMGR_STATUS_SUCCESS) {
+    if (IsaName) {
+      memcpy(IsaName, ElfIsaName.c_str(),
+             std::min(*Size, ElfIsaName.size() + 1));
+    }
+
+    *Size = ElfIsaName.size() + 1;
+  }
+
+  return Status;
 }
 
 // API functions on Data Set
@@ -1680,4 +1761,45 @@ amd_comgr_demangle_symbol_name(amd_comgr_data_t MangledSymbolName,
       llvm::demangle(std::string(DataP->Data, DataP->Size)));
   *DemangledSymbolName = DataObject::convert(DemangledDataP);
   return AMD_COMGR_STATUS_SUCCESS;
+}
+
+amd_comgr_status_t AMD_COMGR_API
+    // NOLINTNEXTLINE(readability-identifier-naming)
+    amd_comgr_set_data_from_file_slice
+    //
+    (amd_comgr_data_t Data, int FD, uint64_t Offset, uint64_t Size) {
+  DataObject *DataP = DataObject::convert(Data);
+  if (!DataP || !DataP->hasValidDataKind())
+    return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
+
+  auto FileHandle = sys::fs::convertFDToNativeFile(FD);
+  auto BufferOrErr = MemoryBuffer::getOpenFileSlice(
+      FileHandle, "" /* Name not set */, Size, Offset);
+  if (BufferOrErr.getError()) {
+    return AMD_COMGR_STATUS_ERROR;
+  }
+
+  DataP->setData(std::move(*BufferOrErr));
+
+  return AMD_COMGR_STATUS_SUCCESS;
+}
+
+amd_comgr_status_t AMD_COMGR_API
+    // NOLINTNEXTLINE(readability-identifier-naming)
+    amd_comgr_lookup_code_object
+    //
+    (amd_comgr_data_t Data, amd_comgr_code_object_info_t *QueryList,
+     size_t QueryListSize) {
+  DataObject *DataP = DataObject::convert(Data);
+
+  if (!DataP || !DataP->hasValidDataKind() ||
+      !(DataP->DataKind == AMD_COMGR_DATA_KIND_FATBIN ||
+        DataP->DataKind == AMD_COMGR_DATA_KIND_BYTES ||
+        DataP->DataKind == AMD_COMGR_DATA_KIND_EXECUTABLE))
+    return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
+
+  if (!QueryList)
+    return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
+
+  return metadata::lookUpCodeObject(DataP, QueryList, QueryListSize);
 }

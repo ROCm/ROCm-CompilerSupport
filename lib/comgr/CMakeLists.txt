@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13.4)
 
-project(amd_comgr VERSION "2.1.0" LANGUAGES C CXX)
+project(amd_comgr VERSION "2.4.0" LANGUAGES C CXX)
 set(amd_comgr_NAME "${PROJECT_NAME}")
 
 include(GNUInstallDirs)
@@ -48,6 +48,7 @@ set(SOURCES
   src/comgr-objdump.cpp
   src/comgr-signal.cpp
   src/comgr-symbol.cpp
+  src/comgr-symbolizer.cpp
   src/time-stat/time-stat.cpp)
 
 if(COMGR_BUILD_SHARED_LIBS)
@@ -154,7 +155,12 @@ if (UNIX)
     endif()
   endif()
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  list(APPEND AMD_COMGR_PRIVATE_COMPILE_OPTIONS "/W0" "/wd4244")
+  list(APPEND AMD_COMGR_PRIVATE_COMPILE_OPTIONS
+    "/wd4244" #[[Suppress 'argument' : conversion from 'type1' to 'type2', possible loss of data]]
+    "/wd4624" #[[Suppress 'derived class' : destructor could not be generated because a base class destructor is inaccessible]]
+    "/wd4267" #[[Suppress 'var' : conversion from 'size_t' to 'type', possible loss of data]]
+    "/wd4291" #[[Suppress 'declaration' : no matching operator delete found; memory will not be freed if initialization throws an exception]]
+    "/wd4146" #[[Suppress 'unary minus operator applied to unsigned type, result still unsigned]])
   list(APPEND AMD_COMGR_PRIVATE_COMPILE_DEFINITIONS _HAS_EXCEPTIONS=0)
 endif()
 
