@@ -143,8 +143,6 @@ if (UNIX)
     configure_file(
       ${CMAKE_CURRENT_SOURCE_DIR}/src/exportmap.in
       ${CMAKE_CURRENT_BINARY_DIR}/src/exportmap @ONLY)
-    list(APPEND AMD_COMGR_PRIVATE_LINKER_OPTIONS
-      "-Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/src/exportmap")
     # When building a shared library with -fsanitize=address we can't be
     # strict about undefined symbol references, as Clang won't include
     # libasan in the link, see
@@ -295,7 +293,8 @@ else()
   llvm_map_components_to_libnames(LLVM_LIBS
     ${LLVM_TARGETS_TO_BUILD}
     DebugInfoDWARF
-    Symbolize)
+    Symbolize
+    )
 endif()
 
 target_link_options(amd_comgr
@@ -305,10 +304,13 @@ target_link_options(amd_comgr
     ${AMD_COMGR_PRIVATE_LINKER_OPTIONS})
 
 target_link_libraries(amd_comgr
-  PRIVATE
+	PUBLIC
+  -Wl,--whole-archive
     ${LLD_LIBS}
     ${LLVM_LIBS}
-    ${CLANG_LIBS})
+    ${CLANG_LIBS}
+    -Wl,--no-whole-archive
+    )
 
 if (NOT UNIX)
   target_link_libraries(amd_comgr
