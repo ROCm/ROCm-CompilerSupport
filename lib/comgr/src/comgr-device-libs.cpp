@@ -186,7 +186,15 @@ amd_comgr_status_t addDeviceLibraries(DataAction *ActionInfo,
       return Status;
     }
   }
-  // V4 or no option given
+  else if (CodeObjectV4) {
+    if (auto Status = addObject(ResultSet, AMD_COMGR_DATA_KIND_BC,
+                                "oclc_abi_version_400_lib.bc",
+                                oclc_abi_version_400_lib,
+                                oclc_abi_version_400_lib_size)) {
+      return Status;
+    }
+  }
+  // Assume v4 if no option is given
   else {
     if (auto Status = addObject(ResultSet, AMD_COMGR_DATA_KIND_BC,
                                 "oclc_abi_version_400_lib.bc",
