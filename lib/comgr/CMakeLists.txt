@@ -6,6 +6,7 @@ set(amd_comgr_NAME "${PROJECT_NAME}")
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+option(FILE_REORG_BACKWARD_COMPATIBILITY "Enable File Reorg with backward compatibility" ON)
 # Optionally, build Compiler Support with ccache.
 set(ROCM_CCACHE_BUILD OFF CACHE BOOL "Set to ON for a ccache enabled build")
 if (ROCM_CCACHE_BUILD)
@@ -55,7 +56,12 @@ if(COMGR_BUILD_SHARED_LIBS)
   add_library(amd_comgr SHARED ${SOURCES})
   # Windows doesn't have a strip utility, so CMAKE_STRIP won't be set.
   if((CMAKE_BUILD_TYPE STREQUAL "Release") AND NOT ("${CMAKE_STRIP}" STREQUAL ""))
-    add_custom_command(TARGET amd_comgr POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:amd_comgr>)
+    if (APPLE)
+      # Building on Mac fails unless -x is passed to the strip command
+      add_custom_command(TARGET amd_comgr POST_BUILD COMMAND ${CMAKE_STRIP} -x $<TARGET_FILE:amd_comgr>)
+    else()
+      add_custom_command(TARGET amd_comgr POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:amd_comgr>)
+    endif()
   endif()
 else()
   add_library(amd_comgr STATIC ${SOURCES})
@@ -242,14 +248,19 @@ install(TARGETS amd_comgr
 install(FILES
   "${CMAKE_CURRENT_BINARY_DIR}/include/amd_comgr.h"
   COMPONENT amd-comgr
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${amd_comgr_NAME})
+
+#File reorg Backward compatibility function
+if(FILE_REORG_BACKWARD_COMPATIBILITY)
+  include(comgr-backward-compat.cmake)
+endif()
 
 install(FILES
   "README.md"
   "LICENSE.txt"
   "NOTICES.txt"
   COMPONENT amd-comgr
-  DESTINATION ${CMAKE_INSTALL_DATADIR}/amd_comgr)
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/amd_comgr)
 
 # Generate the install-tree package.
 set(AMD_COMGR_PREFIX_CODE "
@@ -282,8 +293,13 @@ install(FILES
   "${AMD_COMGR_VERSION_PATH}"
   DESTINATION "${AMD_COMGR_PACKAGE_PREFIX}")
 
-set(CLANG_LIBS
-  clangFrontendTool)
+if(TARGET clangFrontendTool)
+  set(CLANG_LIBS
+    clangFrontendTool)
+else()
+  set(CLANG_LIBS
+    clang-cpp)
+endif()
 
 set(LLD_LIBS
   lldELF
@@ -334,12 +350,6 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   set(CPACK_PACKAGE_VERSION_PATCH "${amd_comgr_VERSION_PATCH}")
   set(CPACK_PACKAGE_CONTACT "ROCm Compiler Support <rocm.compiler.support@amd.com>")
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
-
-  # Install License file
-  install(FILES
-    "${CPACK_RESOURCE_FILE_LICENSE}"
-    COMPONENT amd-comgr
-    DESTINATION ${CMAKE_INSTALL_DOCDIR}/${CPACK_PACKAGE_NAME})
 
   # Make proper version for appending
   set(ROCM_VERSION_FOR_PACKAGE "")
