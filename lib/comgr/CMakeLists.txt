@@ -364,7 +364,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 
   # Debian package specific variables
   set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/RadeonOpenCompute/ROCm-CompilerSupport")
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libtinfo5, rocm-core")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libtinfo-dev, rocm-core")
   if (DEFINED ENV{CPACK_DEBIAN_PACKAGE_RELEASE})
     set(CPACK_DEBIAN_PACKAGE_RELEASE $ENV{CPACK_DEBIAN_PACKAGE_RELEASE})
   else()
