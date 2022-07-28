@@ -260,7 +260,7 @@ install(FILES
   "LICENSE.txt"
   "NOTICES.txt"
   COMPONENT amd-comgr
-  DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/amd_comgr)
+  DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # Generate the install-tree package.
 set(AMD_COMGR_PREFIX_CODE "
@@ -364,7 +364,11 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 
   # Debian package specific variables
   set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/RadeonOpenCompute/ROCm-CompilerSupport")
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libtinfo-dev, rocm-core")
+  if (LLVM_LINK_LLVM_DYLIB)
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libtinfo-dev, rocm-core, rocm-llvm-core")
+  else()
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libtinfo-dev, rocm-core")
+  endif()
   if (DEFINED ENV{CPACK_DEBIAN_PACKAGE_RELEASE})
     set(CPACK_DEBIAN_PACKAGE_RELEASE $ENV{CPACK_DEBIAN_PACKAGE_RELEASE})
   else()
@@ -372,7 +376,11 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   endif()
 
   # RPM package specific variables
-  set(CPACK_RPM_PACKAGE_REQUIRES "ncurses, rocm-core")
+  if (LLVM_LINK_LLVM_DYLIB)
+    set(CPACK_RPM_PACKAGE_REQUIRES "ncurses, rocm-core, rocm-llvm-core")
+  else()
+    set(CPACK_RPM_PACKAGE_REQUIRES "ncurses, rocm-core")
+  endif()
   if(DEFINED CPACK_PACKAGING_INSTALL_PREFIX)
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "${CPACK_PACKAGING_INSTALL_PREFIX}")
   endif()

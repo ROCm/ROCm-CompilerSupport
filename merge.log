@@ -1,0 +1,144 @@
+commit 44f9f1fdffaa4b344db020ebb51d9521155d486b
+Merge: 196e2d0 041a9e7
+Author: David Salinas <David.Salinas@amd.com>
+Date:   Thu Jun 23 17:22:48 2022 +0000
+
+    merge amd-stg-open into amd-mainline-open
+    
+      Bulk promotion for April 16th, 2022
+      for ROCm 5.3
+    
+      Merge remote-tracking branch 'gerritgit/promotion/amd-mainline-open/2022.04.16' into HEAD
+    
+    Change-Id: I82ee4a367ced39bd21107b388b48cffc76db380b
+
+commit 041a9e74c59129fc68bff38d7550bf0b3b6b5357
+Merge: 196e2d0 5495595
+Author: David Salinas <David.Salinas@amd.com>
+Date:   Fri May 27 14:58:00 2022 +0000
+
+    merge amd-stg-open into amd-mainline-open
+    
+      Bulk promotion for ROCm 5.3
+      Merge commit '5495595234e8fb7b1715429cfa41fe6d9c0e710c' from amd-stg-open into amd-mainline-open
+    
+    Change-Id: I279069d89cfaa99274198c118921c7d1a3859aa5
+
+commit 5495595234e8fb7b1715429cfa41fe6d9c0e710c
+Author: Jeremy Newton <Jeremy.Newton@amd.com>
+Date:   Thu Apr 14 12:55:00 2022 -0400
+
+    Detect if clang is static or shared
+    
+    For some distros, such as Fedora, they discourage use of static
+    libraries, so static clang might not be available. The issue is that
+    shared clang is separated into two libs, clang and clang-cpp, while the
+    static libs are much more granular, so the library names are different
+    in either case.
+    
+    To allow the shared clang case, look for the static clangFrontendTool
+    lib before attempting to link with it, else wise fall back to linking
+    against the shared clang-cpp lib, which contains the symbols we need.
+    
+    Signed-off-by: Jeremy Newton <Jeremy.Newton@amd.com>
+    Change-Id: I61917bcc0d5a3064aa841ff104b8008296dd85b7
+
+commit e440094e2060fcba671553d045caf7c3fa6c673f
+Author: Konstantin Zhuravlyov <kzhuravl_dev@outlook.com>
+Date:   Mon Apr 4 15:26:01 2022 -0400
+
+    Handle code object v5 when constructing ISA name from the ELF header
+    
+    Change-Id: I10ace3e4d9fcbae3462bdb29972fd7ae6c24f3b8
+
+HERE: FAILS
+commit 3b6b4ee04c0da70c92a2bb21eca6cf12194eed7d
+Author: Stanislav Mekhanoshin <Stanislav.Mekhanoshin@amd.com>
+Date:   Tue Mar 29 13:24:38 2022 -0700
+
+    Add gfx940 target
+    
+    Change-Id: If2d4b35b457b1aae38e65aed53b70795a2224b7d
+
+commit 5a1beb6417b7680c29ac131933dd99791141995e
+Author: Jacob Lambert <jacob.lambert@amd.com>
+Date:   Sat Mar 19 10:09:59 2022 -0700
+
+    Adding support for code_object_v4/5 device library options
+    
+    Fixes: SWDEV-321313
+    
+    Change-Id: Ibadd343d7be7ef0fb2e5140a8853fd3f3a8fd533
+
+commit 6c475e7f40cdd0017194cb200a073bab0c7bb1cc
+Author: Ranjith Ramakrishnan <Ranjith.Ramakrishnan@amd.com>
+Date:   Sun Feb 20 20:32:32 2022 -0800
+
+    File reorganization changes with backward compatibility
+    
+    Header files installed in /opt/rocm/include/amd_comgr
+    Wrapper header files for backward compatibility
+    
+    Change-Id: Icc649bfd1983c07a1c7a582bed249b47ca717e98
+
+HERE: 
+commit 777ab187efb83e221723fa3c85d0fa7f7173bc57
+Author: Aakanksha Patil <aakanksha555@gmail.com>
+Date:   Tue Oct 12 13:29:17 2021 -0400
+
+    Add gfx1036
+    
+    Change-Id: I7874ec4923337139feb5315e9a1b4e78110020bb
+
+commit d2318e14dd6f9172a392d40521d7e38c5e0de9e7
+Author: Scott Linder <Scott.Linder@amd.com>
+Date:   Fri Feb 25 18:57:29 2022 +0000
+
+    Cleanup after https://reviews.llvm.org/D120433
+    
+    The implementations of the constructor/destructor for Symbolizer depend
+    on the full definition of SymbolizableObjectFile, which is no longer
+    included upstream via just ObjectFile.h
+    
+    Move the implementations into the .cpp file and include the
+    SymbolizableObjectFile.h header directly.
+    
+    Change-Id: I5cd869a472e847dc02e472b3a150199d9f3e813a
+
+commit 538b7305c4339bb0c1a59dd64494129f0a8266c4
+Author: Chris Hesik <christopher.hesik@amd.com>
+Date:   Thu Feb 24 08:33:07 2022 -0500
+
+    Fix comgr build on MacOs
+    
+    The strip command fails on MacOs unless -x is passed to it
+    
+    Change-Id: I5506dbe08ea96461312b9f0084aab19dc1060192
+
+commit c0e3b98ed4173ec2b76afd5f400637a6859ec1f3
+Author: Nirmal Unnikrishnan <Nirmal.Unnikrishnan@amd.com>
+Date:   Mon Feb 21 21:22:50 2022 +0000
+
+    SWDEV-322588 - Correcting the license file path
+    
+    Correcting the license file path and removing the duplicate installation of license
+    
+    Change-Id: I5802fc361c1c95cb9e9a9030bbd7361bff7cd061
+
+commit eb6657add1e15b91051b12717efb717669419f7e
+Author: Nirmal Unnikrishnan <Nirmal.Unnikrishnan@amd.com>
+Date:   Fri Feb 18 20:02:24 2022 +0000
+
+    SWDEV-322588 - Fixing the path of LICENSE file
+    
+    Correcting the license file path. Currently its installed in /opt/rocm/share/amd_comgr. Moved that to  /opt/rocm/share/doc/amd_comgr
+    
+    Change-Id: I2f7475d3abb2096562ab4b332b2486298fd07cbc
+
+commit 47fe512bd69dfb43a701ab3747cd7475c30b78fc
+Author: Ethan Stewart <ethan.stewart@amd.com>
+Date:   Thu Feb 17 19:33:01 2022 -0600
+
+    Comgr changes needed for https://github.com/llvm/llvm-project/commit/2aed07e96c7a4f777e854fec619842c4289f8fbd
+    
+    Change-Id: I9a81efb7f08c24be1f1a09e5dbe5ab6587efa09c
