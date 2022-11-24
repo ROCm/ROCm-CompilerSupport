@@ -146,6 +146,8 @@ is incremented for each backwards-compatible change introduced. The major
 version number is incremented, and the minor version is reset to zero, for each
 backwards-incompatible change introduced.
 
+* `2.5`: Introduce `amd_comgr_populate_mangled_names` and
+  `amd_comgr_get_mangled_name` APIS.
 * `2.4`: Introduce `amd_comgr_create_symbolizer_info`, `amd_comgr_symbolize`,
   `amd_comgr_destroy_symbolizer_info` APIS.
 * `2.3`: Introduce `amd_comgr_set_data_from_file_slice` and
@@ -178,6 +180,7 @@ backwards-incompatible change introduced.
 
 ISA Metadata and Versioning
 ---------------------------
+
 Comgr supports multiple instruction set architectures (ISA) and APIs to query
 metadata associated with an ISA. The queried metadata follows a semantic
 versioning scheme e.g. major.minor.patch. The major version changes signifies
@@ -190,6 +193,20 @@ backward incompatible changes.
   supplied in a map format with details of target triple, features and
   resource limits associated with registers and memory addressing. The
   version key is absent in the Metadata.
+
+Thread Saftey
+-------------
+
+Comgr strives to be thread-safe when called from multiple threads in the same
+process. Because of complications from a shared global state in LLVM, to
+accomplish this Comgr internally implements locking mechanisms around LLVM-based
+actions.
+
+Although the locks in Comgr can allow independent actions to be safely executed
+in a multithreaded environment, the user-code must still guard against
+concurrent method calls which may access any particular Comgr object's state.
+A Comgr object shared between threads is only safe to use as long as each thread
+carefully locks out access by any other thread while it uses the shared object.
 
 Coding Standards
 ----------------
