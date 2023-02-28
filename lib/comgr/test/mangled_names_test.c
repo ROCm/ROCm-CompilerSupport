@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  const char *bcNames[] = {"source1", "source2"};
+  const char *bcNames[] = {"source3", "source1"};
 
   for (size_t I = 0; I < numNames; ++I) {
     size_t Size;
@@ -249,14 +249,14 @@ int main(int argc, char *argv[]) {
 
   Status = amd_comgr_populate_mangled_names(DataExec, &numNames);
 
-  if (numNames != 4) {
+  if (numNames != 6) {
     printf("amd_populate_mangled_names Failed: "
-           "produced %zu executable names (expected 4)\n",
+           "produced %zu executable names (expected 6)\n",
            numNames);
     exit(1);
   }
 
-  const char *execNames[] = {"source1", "source1.kd", "source2", "source2.kd"};
+  const char *execNames[] = {"source3", "source3.kd", "source1", "source1.kd", "source2", "source2.kd"};
 
   for (size_t I = 0; I < numNames; ++I) {
     size_t Size;
