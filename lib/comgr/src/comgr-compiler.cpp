@@ -39,6 +39,7 @@
 #include "comgr-compiler.h"
 #include "comgr-device-libs.h"
 #include "comgr-env.h"
+#include "lld/Common/CommonLinkerContext.h"
 #include "lld/Common/Driver.h"
 #include "clang/Basic/Version.h"
 #include "clang/CodeGen/CodeGenAction.h"
@@ -258,7 +259,7 @@ bool AssemblerInvocation::createFromArgs(AssemblerInvocation &Opts,
     }
   }
 
-  Opts.RelaxELFRelocations = Args.hasArg(OPT_mrelax_relocations);
+  Opts.RelaxELFRelocations = !Args.hasArg(OPT_mrelax_relocations_no);
   Opts.DwarfVersion = getLastArgIntValue(Args, OPT_dwarf_version_EQ, 2, Diags);
   Opts.DwarfDebugFlags =
       std::string(Args.getLastArgValue(OPT_dwarf_debug_flags));
@@ -842,10 +843,18 @@ amd_comgr_status_t AMDGPUCompiler::executeOutOfProcessHIPCompilation(
   }
 
   ArgsV.push_back("--genco");
-  std::vector<Optional<StringRef>> Redirects;
+
+  if (env::shouldEmitVerboseLogs()) {
+    LogS << "\t    hipcc Command: ";
+    for (auto A : ArgsV)
+      LogS << A << " ";
+    LogS << "\n";
+  }
+
+  llvm::ArrayRef<std::optional<StringRef>> Redirects;
   std::string ErrMsg;
   int RC = sys::ExecuteAndWait(Exec, ArgsV,
-                               /*env=*/None, Redirects, /*secondsToWait=*/0,
+                               /*env=*/std::nullopt, Redirects, /*secondsToWait=*/0,
                                /*memoryLimit=*/0, &ErrMsg);
   LogS << ErrMsg;
   return RC ? AMD_COMGR_STATUS_ERROR : AMD_COMGR_STATUS_SUCCESS;
@@ -1146,8 +1155,12 @@ amd_comgr_status_t AMDGPUCompiler::linkBitcodeToBitcode() {
   // Collect bitcode memory buffers from bitcodes, bundles, and archives
   for (auto *Input : InSet->DataObjects) {
 
-    if (env::shouldSaveTemps())
-      outputToFile(Input, StringRef(std::string("comgr_tmp_") + Input->Name));
+    if (env::shouldSaveTemps()) {
+      if (auto Status = outputToFile(Input,
+                        StringRef(std::string("./comgr_tmp_") + Input->Name))) {
+        return Status;
+      }
+    }
 
     if (Input->DataKind == AMD_COMGR_DATA_KIND_BC) {
       // The data in Input outlives Mod, and the linker destructs Mod after
@@ -1176,6 +1189,13 @@ amd_comgr_status_t AMDGPUCompiler::linkBitcodeToBitcode() {
       size_t index = isa_name.find("gfx");
       std::string bundle_entry_id = "hip-amdgcn-amd-amdhsa-gfx" +
         isa_name.substr(index + 3);
+
+      // Write data to file system so that Offload Bundler can process
+      // TODO: Switch write to VFS
+      if (auto Status = outputToFile(Input,
+                        StringRef(std::string("./") + Input->Name))) {
+        return Status;
+      }
 
       // Configure Offload Bundler
       OffloadBundlerConfig BundlerConfig;
@@ -1240,9 +1260,11 @@ amd_comgr_status_t AMDGPUCompiler::linkBitcodeToBitcode() {
 
       Result->release();
 
-      // Remove output file
-      if (!env::shouldSaveTemps())
+      // Remove temporary files
+      if (!env::shouldSaveTemps()) {
+        sys::fs::remove(Input->Name);
         sys::fs::remove(output_file_name);
+      }
     }
     // Unbundle bitcode archive
     else if (Input->DataKind == AMD_COMGR_DATA_KIND_AR_BUNDLE) {
@@ -1254,6 +1276,13 @@ amd_comgr_status_t AMDGPUCompiler::linkBitcodeToBitcode() {
       size_t index = isa_name.find("gfx");
       std::string bundle_entry_id = "hip-amdgcn-amd-amdhsa-gfx" +
         isa_name.substr(index + 3);
+
+      // Write data to file system so that Offload Bundler can process
+      // TODO: Switch write to VFS
+      if (auto Status = outputToFile(Input,
+                        StringRef(std::string("./") + Input->Name))) {
+        return Status;
+      }
 
       // Configure Offload Bundler
       OffloadBundlerConfig BundlerConfig;
@@ -1361,9 +1390,11 @@ amd_comgr_status_t AMDGPUCompiler::linkBitcodeToBitcode() {
 
       Result->release();
 
-      // Remove output file
-      if (!env::shouldSaveTemps())
+      // Remove temporary files
+      if (!env::shouldSaveTemps()) {
+        sys::fs::remove(Input->Name);
         sys::fs::remove(output_file_name);
+      }
     }
     else
       continue;
@@ -1404,6 +1435,9 @@ amd_comgr_status_t AMDGPUCompiler::codeGenBitcodeToRelocatable() {
   }
 
   Args.push_back("-c");
+
+  Args.push_back("-mllvm");
+  Args.push_back("-amdgpu-internalize-symbols");
 
   return processFiles(AMD_COMGR_DATA_KIND_RELOCATABLE, ".o");
 }

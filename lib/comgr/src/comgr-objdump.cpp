@@ -175,9 +175,9 @@ cl::opt<bool> SectionHeaders("section-headers",
 static cl::alias SectionHeadersShort("headers",
                                      cl::desc("Alias for --section-headers"),
                                      cl::aliasopt(SectionHeaders));
-static cl::alias SectionHeadersShorter("h",
-                                       cl::desc("Alias for --section-headers"),
-                                       cl::aliasopt(SectionHeaders));
+// The following option has been removed to avoid conflicts with
+// other llvm tools/instances also attempting to register a -h option
+//   static cl::alias SectionHeadersShorter("h", ...)
 
 cl::list<std::string>
     FilterSections("section",
@@ -1270,7 +1270,10 @@ void llvm::DisassemHelper::DisassembleObject(const ObjectFile *Obj,
   const Target *TheTarget = getTarget(Obj);
 
   // Package up features to be passed to target/subtarget
-  SubtargetFeatures Features = Obj->getFeatures();
+  Expected<SubtargetFeatures> FeaturesValue = Obj->getFeatures();
+  if (!FeaturesValue)
+    WithColor::error(errs(), ToolName) << FeaturesValue.takeError();
+  SubtargetFeatures Features = *FeaturesValue;
   std::vector<std::string> MAttrs = lld::getMAttrs();
   if (MAttrs.size()) {
     for (unsigned I = 0; I != MAttrs.size(); ++I) {
