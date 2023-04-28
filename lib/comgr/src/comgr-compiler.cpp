@@ -75,11 +75,11 @@
 #include "llvm/Object/Archive.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Error.h"
-#include "llvm/Support/Host.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/WithColor.h"
+#include "llvm/TargetParser/Host.h"
 
 #include "time-stat/ts-interface.h"
 
@@ -615,7 +615,7 @@ static amd_comgr_status_t linkWithLLD(llvm::ArrayRef<const char *> Args,
   LLDArgs.insert(LLDArgs.begin(), "lld");
   LLDArgs.push_back("--threads=1");
 
-  ArrayRef<const char *> ArgRefs = llvm::makeArrayRef(LLDArgs);
+  ArrayRef<const char *> ArgRefs = llvm::ArrayRef(LLDArgs);
   bool LLDRet = lld::elf::link(ArgRefs, LogS, LogE, false, false);
   lld::CommonLinkerContext::destroy();
   if (!LLDRet) {
@@ -626,7 +626,7 @@ static amd_comgr_status_t linkWithLLD(llvm::ArrayRef<const char *> Args,
 
 static void logArgv(raw_ostream &OS, StringRef ProgramName,
                     ArrayRef<const char *> Argv) {
-  OS << "COMGR::executeInProcessDriver argv: " << ProgramName;
+  OS << "     Driver Job Args: " << ProgramName;
   for (size_t I = 0; I < Argv.size(); ++I) {
     // Skip the first argument, which we replace with ProgramName, and the last
     // argument, which is a null terminator.
@@ -635,6 +635,7 @@ static void logArgv(raw_ostream &OS, StringRef ProgramName,
     }
   }
   OS << '\n';
+  OS.flush();
 }
 
 amd_comgr_status_t
@@ -665,6 +666,18 @@ AMDGPUCompiler::executeInProcessDriver(ArrayRef<const char *> Args) {
   TheDriver.setTitle("AMDGPU Code Object Manager");
   TheDriver.setCheckInputsExist(false);
 
+  // Log arguments used to build compilation
+  if (env::shouldEmitVerboseLogs()) {
+    LogS << "    Compilation Args: " ;
+    for (size_t i = 1; i < Args.size(); ++i) {
+      if (Args[i]) {
+        LogS << " \"" << Args[i] << '\"';
+      }
+    }
+    LogS << '\n';
+    LogS.flush();
+  }
+
   std::unique_ptr<Compilation> C(TheDriver.BuildCompilation(Args));
   if (!C) {
     return C->containsError() ? AMD_COMGR_STATUS_ERROR
@@ -689,6 +702,7 @@ AMDGPUCompiler::executeInProcessDriver(ArrayRef<const char *> Args) {
       if (env::shouldEmitVerboseLogs()) {
         logArgv(LogS, "clang", Argv);
       }
+
       std::unique_ptr<CompilerInstance> Clang(new CompilerInstance());
       Clang->setVerboseOutputStream(LogS);
       if (!Argv.back()) {
@@ -1164,6 +1178,11 @@ amd_comgr_status_t AMDGPUCompiler::linkBitcodeToBitcode() {
       // The data in Input outlives Mod, and the linker destructs Mod after
       // linking it into composite (i.e. ownership is not transferred to the
       // composite) so MemoryBuffer::getMemBuffer is sufficient.
+
+      if (env::shouldEmitVerboseLogs()) {
+        LogS << "\t     Linking: " << Input->Name << "\n";
+      }
+
       auto Mod =
         getLazyIRModule(MemoryBuffer::getMemBuffer(
             StringRef(Input->Data, Input->Size), "", false),
@@ -1179,13 +1198,18 @@ amd_comgr_status_t AMDGPUCompiler::linkBitcodeToBitcode() {
         return AMD_COMGR_STATUS_ERROR;
     }
     else if (Input->DataKind == AMD_COMGR_DATA_KIND_BC_BUNDLE) {
+
+      if (env::shouldEmitVerboseLogs()) {
+        LogS << "\t     Linking: " << Input->Name << "\n";
+      }
+
       // Determine desired bundle entry ID
       if (!ActionInfo->IsaName)
         return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
 
       std::string isa_name = ActionInfo->IsaName;
       size_t index = isa_name.find("gfx");
-      std::string bundle_entry_id = "hip-amdgcn-amd-amdhsa-gfx" +
+      std::string bundle_entry_id = "hip-amdgcn-amd-amdhsa--gfx" +
         isa_name.substr(index + 3);
 
       // Write data to file system so that Offload Bundler can process
@@ -1272,7 +1296,7 @@ amd_comgr_status_t AMDGPUCompiler::linkBitcodeToBitcode() {
 
       std::string isa_name = ActionInfo->IsaName;
       size_t index = isa_name.find("gfx");
-      std::string bundle_entry_id = "hip-amdgcn-amd-amdhsa-gfx" +
+      std::string bundle_entry_id = "hip-amdgcn-amd-amdhsa--gfx" +
         isa_name.substr(index + 3);
 
       // Write data to file system so that Offload Bundler can process
