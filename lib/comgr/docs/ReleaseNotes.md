@@ -99,6 +99,7 @@ metadata querys for code object v3 objects.
 New Targets
 -----------
  - gfx940
+ - gfx941
  - gfx1036
 
 Removed Targets
