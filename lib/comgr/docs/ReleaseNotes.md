@@ -49,6 +49,9 @@ prevented correct execution of
 COMPILE\_SOURCE\_WITH\_DEVICE\_LIBS\_TO\_BC action.
 - Fixed a multi-threading bug where programs would hang when calling Comgr APIs
 like amd\_comgr\_iterate\_symbols() from multiple threads
+- Fixed an issue where providing DataObjects with an empty name to the bitcode
+linking action caused errors when AMD\_COMGR\_SAVE\_TEMPS was enabled, or when
+linking bitcode bundles.
 
 
 New APIs
@@ -104,6 +107,9 @@ metadata querys for code object v2 objects.
 deprecation of code object v3 in LLVM. However, we still test loading and
 metadata querys for code object v3 objects.
 - Revamp symbolizer test to fail on errors, among other improvments
+- Improve linking and unbundling log to correctly store temporary files in /tmp,
+and to output clang-offload-bundler command to allow users to re-create Comgr
+unbundling.
 
 New Targets
 -----------

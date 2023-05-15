@@ -83,6 +83,8 @@
 
 #include "time-stat/ts-interface.h"
 
+#include <csignal>
+
 using namespace llvm;
 using namespace llvm::opt;
 using namespace llvm::sys;
@@ -1166,6 +1168,18 @@ amd_comgr_status_t AMDGPUCompiler::linkBitcodeToBitcode() {
 
   // Collect bitcode memory buffers from bitcodes, bundles, and archives
   for (auto *Input : InSet->DataObjects) {
+
+    if (!strcmp(Input->Name, "")) {
+      // If the calling API doesn't provide a DataObject name, generate a random
+      // string to assign. This string is used when the DataObject is written
+      // to the file system via SAVE_TEMPS, or if the object is a bundle which
+      // also needs a file system write for unpacking
+
+      char *buf = (char *) malloc(sizeof(char) * 30);
+      sprintf(buf,"comgr-anon-bitcode-%d.bc", std::rand() % 10000);
+
+      Input->Name = buf;
+    }
 
     if (env::shouldSaveTemps()) {
       if (auto Status = outputToFile(Input,
