@@ -338,17 +338,28 @@ amd_comgr_status_t COMGR::parseTargetIdentifier(StringRef IdentStr,
 }
 
 void COMGR::ensureLLVMInitialized() {
-  static bool LLVMInitialized = false;
-  if (LLVMInitialized) {
-    return;
+
+  // LLVMInitializeAMDGPUTargetInfo calls TargetRegistry.cpp:RegisterTarget()
+  // This function is not thread safe. There may be thread safety issues
+  // with the other LLVMInitialize functions as well. For completeness, we
+  // include all of these initialization functions in mutual exclusion region
+  // TODO: remove mutex once LLVM multi-threading issues are resolved
+  static std::mutex llvm_init_mutex;
+  {
+    std::scoped_lock llvm_init_lock(llvm_init_mutex);
+
+    static bool LLVMInitialized = false;
+    if (LLVMInitialized) {
+      return;
+    }
+    LLVMInitializeAMDGPUTarget();
+    LLVMInitializeAMDGPUTargetInfo();
+    LLVMInitializeAMDGPUTargetMC();
+    LLVMInitializeAMDGPUDisassembler();
+    LLVMInitializeAMDGPUAsmParser();
+    LLVMInitializeAMDGPUAsmPrinter();
+    LLVMInitialized = true;
   }
-  LLVMInitializeAMDGPUTarget();
-  LLVMInitializeAMDGPUTargetInfo();
-  LLVMInitializeAMDGPUTargetMC();
-  LLVMInitializeAMDGPUDisassembler();
-  LLVMInitializeAMDGPUAsmParser();
-  LLVMInitializeAMDGPUAsmPrinter();
-  LLVMInitialized = true;
 }
 
 void COMGR::clearLLVMOptions() {
@@ -1817,7 +1828,7 @@ amd_comgr_populate_mangled_names(amd_comgr_data_t Data,
       }
 
       std::unique_ptr<Module> M = std::move(ModOrError.get());
-      for (llvm::GlobalVariable &global_var : M->getGlobalList())
+      for (llvm::GlobalVariable &global_var : M->globals())
         DataP->MangledNames.push_back(global_var.getName().str());
       for (llvm::Function &function : M->getFunctionList())
         DataP->MangledNames.push_back(function.getName().str());

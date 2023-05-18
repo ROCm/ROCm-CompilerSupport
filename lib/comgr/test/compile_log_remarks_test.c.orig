@@ -50,7 +50,11 @@ extern int unsetenv (const char *);
 
 int main(int argc, char *argv[]) {
 
+<<<<<<< HEAD
+  // For this pass to test when redirecting logs to stdout,
+=======
   // For this test to pass when redirecting logs to stdout,
+>>>>>>> 6951a293c4c98d31acc45775c3dad46b47a9524b
   // we need to temporarily undo the redirect
   if (getenv("AMD_COMGR_REDIRECT_LOGS") &&
       !strcmp("stdout", getenv("AMD_COMGR_REDIRECT_LOGS")))

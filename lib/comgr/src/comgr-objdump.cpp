@@ -42,7 +42,6 @@
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"
-#include "llvm/ADT/Triple.h"
 #include "llvm/CodeGen/CommandFlags.h"
 #include "llvm/DebugInfo/DWARF/DWARFContext.h"
 #include "llvm/DebugInfo/Symbolize/Symbolize.h"
@@ -74,7 +73,6 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/GraphWriter.h"
-#include "llvm/Support/Host.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/PrettyStackTrace.h"
@@ -83,6 +81,8 @@
 #include "llvm/Support/StringSaver.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/TargetParser/Host.h"
+#include "llvm/TargetParser/Triple.h"
 #include <algorithm>
 #include <cctype>
 #include <cstring>
@@ -671,7 +671,7 @@ public:
     OS << left_justify(IS.str(), 60)
        << format("// %012" PRIX64 ": ", Address.Address);
     typedef support::ulittle32_t U32;
-    for (auto D : makeArrayRef(reinterpret_cast<const U32 *>(Bytes.data()),
+    for (auto D : ArrayRef(reinterpret_cast<const U32 *>(Bytes.data()),
                                Bytes.size() / sizeof(U32))) {
       // D should be explicitly casted to uint32_t here as it is passed
       // by format to snprintf as vararg.
