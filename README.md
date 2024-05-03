@@ -1,4 +1,4 @@
-# RocmCompilerSupport has moved!
+# Rocm-CompilerSupport has moved!
 
 This project is now located in the
 [AMD Fork of the LLVM Project](https://github.com/ROCm/llvm-project), under the
