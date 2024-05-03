@@ -1,6 +1,7 @@
 # RocmCompilerSupport has moved!
 
-This project is now located in the ROCm fork of the llvm-project, under the
+This project is now located in the
+[AMD Fork of the LLVM Project](https://github.com/ROCm/llvm-project), under the
 "amd/comgr" directory. This repository is now read-only.
 
 All issues and pull requests related to Comgr should be filed at
